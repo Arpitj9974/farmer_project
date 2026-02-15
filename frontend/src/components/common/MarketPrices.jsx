@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Table, Badge, Spinner } from 'react-bootstrap';
 import { FaSearch, FaLeaf, FaRobot } from 'react-icons/fa';
 import api from '../../services/api';
-import ChatBot from './ChatBot';
+import AgriAssistant from '../ai/AgriAssistant';
 import { locationData, commodityGroups } from '../../utils/marketData';
 
 const MarketPrices = () => {
@@ -291,7 +291,13 @@ const MarketPrices = () => {
                 }}
             >
                 <div className="h-100">
-                    <ChatBot onClose={() => setShowChat(false)} />
+                    <div className="h-100 position-relative">
+                        <AgriAssistant
+                            embedded={true}
+                            isOpenProps={true}
+                            onClose={() => setShowChat(false)}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

@@ -12,6 +12,8 @@
   --border-radius: 12px;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
+  --ai-accent: #2e7d32;
+  --ai-gradient: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
 }
 
 * {

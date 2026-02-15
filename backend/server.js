@@ -21,6 +21,7 @@ const analyticsRoutes = require('./routes/analytics');
 const reviewRoutes = require('./routes/reviews');
 const notificationRoutes = require('./routes/notifications');
 const priceRoutes = require('./routes/prices');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 const ENV = process.env.NODE_ENV || 'development';
@@ -109,6 +110,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/prices', priceRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ═══════════════════════════════════════════════════
 // HEALTH CHECK — with pool stats + DB ping

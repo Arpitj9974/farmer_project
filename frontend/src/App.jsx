@@ -8,6 +8,7 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Loader from './components/common/Loader';
 import PrivateRoute from './components/auth/PrivateRoute';
+import AgriAssistant from './components/ai/AgriAssistant';
 
 // Pages
 import Home from './components/pages/Home';
@@ -78,6 +79,7 @@ function App() {
                 </Routes>
             </main>
             <Footer />
+            {useAuth().user && <AgriAssistant />}
             <ToastContainer position="top-right" autoClose={3000} />
         </>
     );
