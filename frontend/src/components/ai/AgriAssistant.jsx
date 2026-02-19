@@ -33,10 +33,13 @@ const AgriAssistant = ({ embedded = false, isOpenProps = false, onClose }) => {
 
         try {
             // Filter history for Gemini format
-            const history = chatHistory.map(item => ({
-                role: item.role,
-                parts: item.parts
-            }));
+            // Filter history for Gemini format - exclude initial model greeting as history must start with user
+            const history = chatHistory
+                .filter((_, index) => index > 0 || chatHistory[0].role !== 'model')
+                .map(item => ({
+                    role: item.role,
+                    parts: item.parts
+                }));
 
             const response = await api.post('/ai/chat', {
                 message: userMsg,

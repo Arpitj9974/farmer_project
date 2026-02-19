@@ -1,33 +1,55 @@
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Environment files (NEVER commit these!)
+# Testing
+coverage
+.nyc_output
+
+# Production / Build
+dist/
+build/
+out/
+.next/
+
+# Environment Files (CRITICAL: Never commit .env)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 !.env.production.template
 
 # Logs
-logs/
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Build output
-build/
-dist/
-
-# OS files
+# OS Files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# IDE files
+# IDE Files
 .vscode/
 .idea/
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.sw?
 
-# Uploads (user content)
-uploads/avatars/*
-uploads/products/*
-!uploads/.gitkeep
-
-# Temporary files
+# Temporary Files
 *.tmp
+*.bak
 *.swp
+*~
+
+# Uploads (User Content)
+uploads/
+!uploads/.gitkeep
+backend/uploads/
+frontend/public/uploads/

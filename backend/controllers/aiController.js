@@ -17,6 +17,7 @@ const model = genAI.getGenerativeModel({
 exports.chat = async (req, res) => {
     try {
         const { message, history } = req.body;
+        console.log("AI Chat Request:", { message, historyLength: history?.length });
 
         if (!message) {
             return res.status(400).json({ success: false, message: "Message is required" });
@@ -39,6 +40,22 @@ exports.chat = async (req, res) => {
 
     } catch (error) {
         logger.error("Gemini Chat Error", { error: error.message });
+        console.error("FULL AI ERROR:", error);
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(__dirname, '../ai_error_log.json');
+            fs.writeFileSync(logPath, JSON.stringify({
+                message: error.message,
+                stack: error.stack,
+                response: error.response,
+                modelUsed: process.env.GEMINI_MODEL
+            }, null, 2));
+            console.error(`Detailed AI error logged to ${logPath}`);
+        } catch (fileErr) {
+            console.error("Failed to write error log file:", fileErr);
+        }
+
         res.status(500).json({
             success: false,
             message: "Our AI assistant is temporarily busy. Please try again in a moment.",

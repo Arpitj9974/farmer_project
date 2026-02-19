@@ -9,6 +9,8 @@ import Loader from '../common/Loader';
 
 const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000/uploads';
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80';
+
 const ProductDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -87,11 +89,11 @@ const ProductDetail = () => {
                     <Card className="mb-4">
                         <Row className="g-0">
                             <Col md={5}>
-                                <img src={product.images?.[0]?.image_url ? (product.images[0].image_url.startsWith('http') ? product.images[0].image_url : `${UPLOAD_URL}/${product.images[0].image_url.replace(/^\/+/, '')}`) : '/placeholder.jpg'} className="img-fluid rounded-start" alt={product.name} style={{ height: '300px', width: '100%', objectFit: 'cover' }} />
+                                <img src={product.images?.[0]?.image_url ? (product.images[0].image_url.startsWith('http') ? product.images[0].image_url : `${UPLOAD_URL}/${product.images[0].image_url.replace(/^\/+/, '')}`) : FALLBACK_IMAGE} className="img-fluid rounded-start" alt={product.name} style={{ height: '300px', width: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = FALLBACK_IMAGE; }} />
                                 {product.images?.length > 1 && (
                                     <div className="d-flex gap-2 p-2">
                                         {product.images.slice(1).map((img, i) => (
-                                            <img key={i} src={img.image_url.startsWith('http') ? img.image_url : `${UPLOAD_URL}/${img.image_url.replace(/^\/+/, '')}`} className="rounded" style={{ width: '60px', height: '60px', objectFit: 'cover' }} alt="" />
+                                            <img key={i} src={img.image_url.startsWith('http') ? img.image_url : `${UPLOAD_URL}/${img.image_url.replace(/^\/+/, '')}`} className="rounded" style={{ width: '60px', height: '60px', objectFit: 'cover' }} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE; }} />
                                         ))}
                                     </div>
                                 )}

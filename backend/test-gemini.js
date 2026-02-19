@@ -7,7 +7,7 @@ async function listModels() {
         const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent("ping");
         console.log("Gemini 1.5 Flash Response successful");
     } catch (e) {
-        console.log("Gemini 1.5 Flash failed:", e.message);
+        console.log("Gemini 1.5 Flash failed:", e);
     }
 
     try {
@@ -15,7 +15,7 @@ async function listModels() {
         const result = await genAI.getGenerativeModel({ model: "gemini-pro" }).generateContent("ping");
         console.log("Gemini Pro Response successful");
     } catch (e) {
-        console.log("Gemini Pro failed:", e.message);
+        console.log("Gemini Pro failed:", e);
     }
 }
 

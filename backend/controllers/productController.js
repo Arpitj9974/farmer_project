@@ -4,6 +4,7 @@ const { getPriceGuidance } = require('../utils/priceGuidance');
 const { paginate, paginationResponse } = require('../utils/helpers');
 const fs = require('fs');
 const path = require('path');
+const { assignImageOnCreate } = require('../services/imageService');
 
 // Create product
 exports.createProduct = async (req, res) => {
@@ -55,6 +56,12 @@ exports.createProduct = async (req, res) => {
             }
 
             await client.query('COMMIT');
+
+            // Auto-assign verified image if no images were uploaded
+            if (!req.files || req.files.length === 0) {
+                await assignImageOnCreate(productId, name);
+            }
+
             res.status(201).json({ message: 'Product created successfully. Pending admin approval.', productId });
         } catch (error) {
             await client.query('ROLLBACK');

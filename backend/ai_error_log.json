@@ -1,0 +1,5 @@
+{
+  "message": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent: fetch failed",
+  "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13510:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async makeRequest (D:\\AJDF\\farmer_project\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:397:20)\n    at async generateContent (D:\\AJDF\\farmer_project\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:867:22)\n    at async ChatSession.sendMessage (D:\\AJDF\\farmer_project\\backend\\node_modules\\@google\\generative-ai\\dist\\index.js:1210:9)\n    at async exports.chat (D:\\AJDF\\farmer_project\\backend\\controllers\\aiController.js:33:24)",
+  "modelUsed": "gemini-flash-latest"
+}

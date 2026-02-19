@@ -16,8 +16,11 @@ const MyProducts = () => {
     const [pagination, setPagination] = useState({});
 
     useEffect(() => {
+        console.log("MyProducts mounted");
         fetchProducts();
     }, [page, filter]);
+
+    console.log("MyProducts Render:", { loading, productsCount: products.length, filter, page });
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -49,7 +52,27 @@ const MyProducts = () => {
         return <Badge bg={colors[status] || 'secondary'}>{status.replace('_', ' ')}</Badge>;
     };
 
-    if (loading && products.length === 0) return <Loader />;
+    if (loading) return <div className="p-5 text-center"><h1>LOADING PRODUCTS...</h1></div>;
+
+    if (!Array.isArray(products)) {
+        console.error("Products is not an array:", products);
+        return <div className="alert alert-danger">Error: Products data is invalid</div>;
+    }
+
+    if (products.length === 0) return <div className="p-5 text-center"><h1>NO PRODUCTS FOUND</h1></div>;
+
+    const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80';
+
+    const getImageUrl = (product) => {
+        try {
+            if (!product.primary_image) return FALLBACK_IMAGE;
+            if (product.primary_image.startsWith('http')) return product.primary_image;
+            return `${UPLOAD_URL}/${product.primary_image.replace(/^\/+/, '')}`;
+        } catch (e) {
+            console.error("Error generating image URL for product:", product, e);
+            return FALLBACK_IMAGE;
+        }
+    };
 
     return (
         <Container className="py-4">
@@ -87,37 +110,40 @@ const MyProducts = () => {
                 <div className="empty-state"><p>No products found. Start by adding your first product!</p></div>
             ) : (
                 <Row className="g-4">
-                    {products.map(product => (
-                        <Col md={4} lg={3} key={product.id}>
-                            <Card className="product-card h-100">
-                                <Card.Img variant="top" src={product.primary_image ? (product.primary_image.startsWith('http') ? product.primary_image : `${UPLOAD_URL}/${product.primary_image.replace(/^\/+/, '')}`) : '/placeholder.jpg'} style={{ height: '200px', objectFit: 'cover' }} />
-                                <Card.Body>
-                                    <div className="d-flex justify-content-between mb-2">
-                                        {getStatusBadge(product.status)}
-                                        <Badge bg={product.selling_mode === 'bidding' ? 'purple' : 'info'}>{product.selling_mode === 'bidding' ? '🔨 Bidding' : '💰 Fixed'}</Badge>
-                                    </div>
-                                    <Card.Title className="h6">{product.name}</Card.Title>
-                                    <p className="mb-1"><small className="text-muted">{product.quantity_kg} kg available</small></p>
-                                    <p className="fw-bold text-success mb-2">
-                                        ₹{product.selling_mode === 'fixed_price' ? product.fixed_price : product.current_highest_bid || product.base_price}/kg
-                                        {product.selling_mode === 'bidding' && product.current_highest_bid > 0 && <small className="text-muted"> (highest bid)</small>}
-                                    </p>
-                                    <div className="d-flex gap-2">
-                                        <Link to={`/products/${product.id}`} className="btn btn-sm btn-outline-primary"><FaEye /></Link>
-                                        {product.selling_mode === 'bidding' && product.status === 'active' && (
-                                            <Link to={`/farmer/products/${product.id}/bids`} className="btn btn-sm btn-outline-success"><FaGavel /> Bids</Link>
-                                        )}
-                                        {product.status === 'pending_approval' && (
-                                            <Button variant="outline-secondary" size="sm"><FaEdit /></Button>
-                                        )}
-                                        {['pending_approval', 'rejected'].includes(product.status) && (
-                                            <Button variant="outline-danger" size="sm" onClick={() => handleDelete(product.id)}><FaTrash /></Button>
-                                        )}
-                                    </div>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    ))}
+                    {products.map(product => {
+                        console.log("Rendering product:", product.id);
+                        return (
+                            <Col md={4} lg={3} key={product.id}>
+                                <Card className="product-card h-100">
+                                    <Card.Img variant="top" src={getImageUrl(product)} style={{ height: '200px', objectFit: 'cover' }} onError={(e) => { e.target.src = FALLBACK_IMAGE; }} alt={product.name} />
+                                    <Card.Body>
+                                        <div className="d-flex justify-content-between mb-2">
+                                            {getStatusBadge(product.status)}
+                                            <Badge bg={product.selling_mode === 'bidding' ? 'purple' : 'info'}>{product.selling_mode === 'bidding' ? '🔨 Bidding' : '💰 Fixed'}</Badge>
+                                        </div>
+                                        <Card.Title className="h6">{product.name}</Card.Title>
+                                        <p className="mb-1"><small className="text-muted">{product.quantity_kg} kg available</small></p>
+                                        <p className="fw-bold text-success mb-2">
+                                            ₹{product.selling_mode === 'fixed_price' ? product.fixed_price : product.current_highest_bid || product.base_price}/kg
+                                            {product.selling_mode === 'bidding' && product.current_highest_bid > 0 && <small className="text-muted"> (highest bid)</small>}
+                                        </p>
+                                        <div className="d-flex gap-2">
+                                            <Link to={`/products/${product.id}`} className="btn btn-sm btn-outline-primary"><FaEye /></Link>
+                                            {product.selling_mode === 'bidding' && product.status === 'active' && (
+                                                <Link to={`/farmer/products/${product.id}/bids`} className="btn btn-sm btn-outline-success"><FaGavel /> Bids</Link>
+                                            )}
+                                            {product.status === 'pending_approval' && (
+                                                <Button variant="outline-secondary" size="sm"><FaEdit /></Button>
+                                            )}
+                                            {['pending_approval', 'rejected'].includes(product.status) && (
+                                                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(product.id)}><FaTrash /></Button>
+                                            )}
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        );
+                    })}
                 </Row>
             )}
 

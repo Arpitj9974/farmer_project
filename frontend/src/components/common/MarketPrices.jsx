@@ -20,7 +20,7 @@ const MarketPrices = () => {
         commodityGroup: 'Vegetables',
         commodity: 'All Commodities',
         variety: 'All Varieties',
-        grade: 'FAQ'
+        grade: 'All Grades'
     });
 
     const [availableDistricts, setAvailableDistricts] = useState([]);
@@ -94,14 +94,21 @@ const MarketPrices = () => {
     const fetchAPMC = async (e) => {
         if (e) e.preventDefault();
         setLoadingApmc(true);
-        try {
-            const queryParams = new URLSearchParams({
-                state: filters.state === 'All States' ? '' : filters.state,
-                district: filters.district.includes('All') ? '' : filters.district,
-                market: filters.market.includes('All') ? '' : filters.market,
-                commodity: filters.commodity.includes('All') ? '' : filters.commodity
-            }).toString();
+        setApmcData([]); // Clear stale data immediately before new fetch
 
+        try {
+            // Build params — only send filters that are actually selected (not "All ...")
+            const params = {};
+            if (filters.state && filters.state !== 'All States') params.state = filters.state;
+            if (filters.district && !filters.district.includes('All')) params.district = filters.district;
+            if (filters.market && !filters.market.includes('All')) params.market = filters.market;
+            if (filters.commodity && !filters.commodity.includes('All')) params.commodity = filters.commodity;
+            if (filters.commodityGroup && !filters.commodityGroup.includes('All')) params.commodityGroup = filters.commodityGroup;
+            if (filters.grade && !filters.grade.toLowerCase().includes('all')) params.grade = filters.grade;
+
+            console.log('[MarketPrices] Sending filters to API:', params);
+
+            const queryParams = new URLSearchParams(params).toString();
             const res = await api.get(`/prices/apmc?${queryParams}`);
             setApmcData(res.data.data);
         } catch (err) {
@@ -210,17 +217,20 @@ const MarketPrices = () => {
                                                 <Form.Label className="small text-muted fw-bold">Variety</Form.Label>
                                                 <Form.Select name="variety" value={filters.variety} onChange={handleFilterChange} size="sm">
                                                     <option>All Varieties</option>
-                                                    <option>FAQ</option>
                                                     <option>Desi</option>
                                                     <option>Hybrid</option>
+                                                    <option>Local</option>
+                                                    <option>Improved</option>
                                                 </Form.Select>
                                             </Col>
                                             <Col md={3}>
                                                 <Form.Label className="small text-muted fw-bold">Grade</Form.Label>
                                                 <Form.Select name="grade" value={filters.grade} onChange={handleFilterChange} size="sm">
-                                                    <option>FAQ</option>
+                                                    <option>All Grades</option>
+                                                    <option>Standard</option>
                                                     <option>Medium</option>
                                                     <option>Best</option>
+                                                    <option>Premium</option>
                                                 </Form.Select>
                                             </Col>
                                             <Col md={3} className="d-flex align-items-end">
@@ -252,7 +262,7 @@ const MarketPrices = () => {
                                                     <tr key={index}>
                                                         <td>
                                                             <div className="fw-bold text-dark">{item.commodity}</div>
-                                                            <small className="text-muted">{item.variety || 'FAQ'}</small>
+                                                            <small className="text-muted">{item.variety || 'Local'}</small>
                                                         </td>
                                                         <td>
                                                             <div>{item.market}</div>
