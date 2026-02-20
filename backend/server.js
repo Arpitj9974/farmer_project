@@ -34,26 +34,35 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// ─── CORS ───
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3005',
-    'http://localhost:3006',
-    'http://localhost:3007',
-    process.env.FRONTEND_URL,
-].filter(Boolean);
+// ─── CORS — Environment-Aware ───
+// In PRODUCTION: Only FRONTEND_URL is allowed (your Vercel domain)
+// In DEVELOPMENT: Localhost variants are also allowed for convenience
+const allowedOrigins = ENV === 'production'
+    ? [process.env.FRONTEND_URL].filter(Boolean)
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3005',
+        'http://localhost:3006',
+        'http://localhost:3007',
+        process.env.FRONTEND_URL,
+    ].filter(Boolean);
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        // Allow requests with no origin (server-to-server, curl, health checks)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            logger.warn(`CORS blocked request`, { origin });
+            logger.warn(`🚫 CORS blocked request from unauthorized origin`, { origin, allowedOrigins });
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // ─── Body parser ───

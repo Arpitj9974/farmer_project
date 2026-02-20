@@ -2,17 +2,10 @@ const express = require('express');
 const router = express.Router();
 const aiController = require('../controllers/aiController');
 const auth = require('../middleware/auth');
-const rateLimit = require('express-rate-limit');
+const { aiLimiter } = require('../middleware/rateLimiter');
 
-// Rate limiter for AI chat: 20 requests per hour per user
-const aiLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 50, // Increased for better UX during testing
-    message: { success: false, message: 'Too many AI requests. Please try again after an hour.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
+// AI Chat — requires authentication + strict rate limiting
+// This protects the Gemini API key quota from abuse
 router.post('/chat', auth, aiLimiter, aiController.chat);
 
 module.exports = router;
