@@ -20,8 +20,11 @@ import MarketPrices from './components/common/MarketPrices';
 import FarmerDashboard from './components/farmer/Dashboard';
 import AddProduct from './components/farmer/AddProduct';
 import MyProducts from './components/farmer/MyProducts';
+import EditProduct from './components/farmer/EditProduct';
 import ViewBids from './components/farmer/ViewBids';
 import FarmerOrders from './components/farmer/FarmerOrders';
+import FarmerProfile from './components/farmer/Profile';
+import FarmerAnalytics from './components/farmer/Analytics';
 
 // Buyer
 import BuyerDashboard from './components/buyer/Dashboard';
@@ -58,9 +61,12 @@ function App() {
                     {/* Farmer */}
                     <Route path="/farmer/dashboard" element={<PrivateRoute roles={['farmer']}><FarmerDashboard /></PrivateRoute>} />
                     <Route path="/farmer/add-product" element={<PrivateRoute roles={['farmer']}><AddProduct /></PrivateRoute>} />
+                    <Route path="/farmer/edit-product/:id" element={<PrivateRoute roles={['farmer']}><EditProduct /></PrivateRoute>} />
                     <Route path="/farmer/products" element={<PrivateRoute roles={['farmer']}><MyProducts /></PrivateRoute>} />
                     <Route path="/farmer/products/:id/bids" element={<PrivateRoute roles={['farmer']}><ViewBids /></PrivateRoute>} />
                     <Route path="/farmer/orders" element={<PrivateRoute roles={['farmer']}><FarmerOrders /></PrivateRoute>} />
+                    <Route path="/farmer/profile" element={<PrivateRoute roles={['farmer']}><FarmerProfile /></PrivateRoute>} />
+                    <Route path="/farmer/analytics" element={<PrivateRoute roles={['farmer']}><FarmerAnalytics /></PrivateRoute>} />
 
                     {/* Buyer */}
                     <Route path="/buyer/dashboard" element={<PrivateRoute roles={['buyer']}><BuyerDashboard /></PrivateRoute>} />

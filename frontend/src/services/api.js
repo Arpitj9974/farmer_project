@@ -9,7 +9,6 @@ if (process.env.NODE_ENV === 'development') {
 
 const api = axios.create({
     baseURL: API_URL,
-    headers: { 'Content-Type': 'application/json' },
     timeout: 15000, // 15 second timeout — prevents hanging requests
 });
 
@@ -61,4 +60,8 @@ api.interceptors.response.use(
     }
 );
 
+// NOTE: DB paths are stored as `/uploads/avatars/x.jpg` etc.
+// So UPLOAD_URL must be the server root (no trailing /uploads) to avoid double-path.
+// Usage: `${UPLOAD_URL}${path}` e.g. `http://localhost:5002/uploads/avatars/x.jpg`
+export const UPLOAD_URL = API_URL.replace('/api', '');
 export default api;

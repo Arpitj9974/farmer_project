@@ -215,7 +215,7 @@ exports.getProfile = async (req, res) => {
 
         if (req.user.user_type === 'farmer') {
             const result = await pool.query(
-                `SELECT u.id, u.email, u.user_type, u.name, u.mobile, u.avatar_url,
+                `SELECT u.id, u.email, u.user_type, u.name, u.mobile, u.avatar_url, u.bio,
                         u.is_verified, u.verification_status, u.last_login, u.created_at,
                         f.farm_address, f.city, f.state, f.pincode, f.farm_size,
                         f.overall_rating, f.total_orders, f.bank_name, f.account_number, f.ifsc_code
@@ -225,7 +225,7 @@ exports.getProfile = async (req, res) => {
             profile = result.rows[0];
         } else if (req.user.user_type === 'buyer') {
             const result = await pool.query(
-                `SELECT u.id, u.email, u.user_type, u.name, u.mobile, u.avatar_url,
+                `SELECT u.id, u.email, u.user_type, u.name, u.mobile, u.avatar_url, u.bio,
                         u.is_verified, u.verification_status, u.last_login, u.created_at,
                         b.business_name, b.business_type, b.gst_number, b.gst_verified,
                         b.business_address, b.total_purchases
@@ -235,7 +235,7 @@ exports.getProfile = async (req, res) => {
             profile = result.rows[0];
         } else {
             const result = await pool.query(
-                'SELECT id, email, user_type, name, mobile, avatar_url, is_verified, verification_status, last_login, created_at FROM users WHERE id = $1',
+                'SELECT id, email, user_type, name, mobile, avatar_url, bio, is_verified, verification_status, last_login, created_at FROM users WHERE id = $1',
                 [userId]
             );
             profile = result.rows[0];
@@ -261,7 +261,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, mobile, farm_address, city, state, pincode, farm_size,
+        const { name, mobile, bio, farm_address, city, state, pincode, farm_size,
             business_name, business_type, business_address, bank_name, account_number, ifsc_code } = req.body;
 
         const client = await pool.connect();
@@ -269,8 +269,8 @@ exports.updateProfile = async (req, res) => {
             await client.query('BEGIN');
 
             await client.query(
-                'UPDATE users SET name = COALESCE($1, name), mobile = COALESCE($2, mobile) WHERE id = $3',
-                [name, mobile, userId]
+                'UPDATE users SET name = COALESCE($1, name), mobile = COALESCE($2, mobile), bio = COALESCE($3, bio) WHERE id = $4',
+                [name, mobile, bio, userId]
             );
 
             if (req.user.user_type === 'farmer') {
@@ -353,7 +353,20 @@ exports.changePassword = async (req, res) => {
 exports.uploadAvatar = async (req, res) => {
     try {
         if (!req.file) {
+            console.error('Upload Failed - No req.file!');
+            console.error('Request Headers:', req.headers);
+            console.error('Request Body:', req.body);
             return res.status(400).json({ success: false, message: 'No image uploaded' });
+        }
+
+        // Delete old avatar file from disk
+        const oldAvatar = await pool.query('SELECT avatar_url FROM users WHERE id = $1', [req.user.id]);
+        if (oldAvatar.rows[0]?.avatar_url) {
+            const oldPath = require('path').join(__dirname, '..', oldAvatar.rows[0].avatar_url);
+            const fs = require('fs');
+            if (fs.existsSync(oldPath)) {
+                try { fs.unlinkSync(oldPath); } catch (e) { console.warn('Could not delete old avatar:', e.message); }
+            }
         }
 
         const avatarUrl = `/uploads/avatars/${req.file.filename}`;

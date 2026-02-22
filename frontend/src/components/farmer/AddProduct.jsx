@@ -4,6 +4,7 @@ import { Container, Form, Button, Row, Col, Card, Alert } from 'react-bootstrap'
 import { FaUpload, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
+import DashboardLayout from '../common/Layout/DashboardLayout';
 
 // Define the hierarchy
 const CROP_TYPES = {
@@ -168,11 +169,22 @@ const AddProduct = () => {
         images.forEach(img => data.append('images', img));
 
         try {
-            await api.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${api.defaults.baseURL}/products`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: data
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message || 'Failed to create product');
+
             toast.success('Product created! Pending admin approval.');
             navigate('/farmer/products');
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to create product');
+            setError(err.message || 'Failed to create product');
         } finally {
             setLoading(false);
         }
@@ -190,138 +202,140 @@ const AddProduct = () => {
     const hint = getPriceHint();
 
     return (
-        <Container className="py-4">
-            <h2 className="mb-4">Add New Product</h2>
+        <DashboardLayout role="farmer">
+            <Container className="py-4">
+                <h2 className="mb-4">Add New Product</h2>
 
-            {error && <Alert variant="danger">{error}</Alert>}
+                {error && <Alert variant="danger">{error}</Alert>}
 
-            <Form onSubmit={handleSubmit}>
-                <Row>
-                    <Col md={8}>
-                        <Card className="mb-4">
-                            <Card.Header>Product Details</Card.Header>
-                            <Card.Body>
-                                <Row>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Select Category *</Form.Label>
-                                            <Form.Select
-                                                value={selectedType}
-                                                onChange={handleTypeChange}
-                                                required
-                                            >
-                                                <option value="">-- Select Category --</option>
-                                                {Object.keys(CROP_TYPES).map(type => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Crop / Product Name *</Form.Label>
-                                            <Form.Select
-                                                name="name"
-                                                value={formData.name}
-                                                onChange={handleCropChange}
-                                                required
-                                                disabled={!selectedType}
-                                            >
-                                                <option value="">
-                                                    {selectedType ? '-- Select Crop --' : 'Select Category first'}
-                                                </option>
-                                                {availableCrops.map(crop => (
-                                                    <option key={crop} value={crop}>{crop}</option>
-                                                ))}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
+                <Form onSubmit={handleSubmit}>
+                    <Row>
+                        <Col md={8}>
+                            <Card className="mb-4">
+                                <Card.Header>Product Details</Card.Header>
+                                <Card.Body>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Select Category *</Form.Label>
+                                                <Form.Select
+                                                    value={selectedType}
+                                                    onChange={handleTypeChange}
+                                                    required
+                                                >
+                                                    <option value="">-- Select Category --</option>
+                                                    {Object.keys(CROP_TYPES).map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Crop / Product Name *</Form.Label>
+                                                <Form.Select
+                                                    name="name"
+                                                    value={formData.name}
+                                                    onChange={handleCropChange}
+                                                    required
+                                                    disabled={!selectedType}
+                                                >
+                                                    <option value="">
+                                                        {selectedType ? '-- Select Crop --' : 'Select Category first'}
+                                                    </option>
+                                                    {availableCrops.map(crop => (
+                                                        <option key={crop} value={crop}>{crop}</option>
+                                                    ))}
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Description *</Form.Label>
-                                    <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleChange} minLength={20} maxLength={1000} required />
-                                </Form.Group>
-
-                                <Row>
-                                    <Col md={4}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Quantity (kg) *</Form.Label>
-                                            <Form.Control type="number" step="0.1" name="quantity_kg" value={formData.quantity_kg} onChange={handleChange} min="1" required />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Quality Grade *</Form.Label>
-                                            <Form.Select name="quality_grade" value={formData.quality_grade} onChange={handleChange}>
-                                                <option value="A+">A+ (Premium)</option>
-                                                <option value="A">A (Standard)</option>
-                                                <option value="B">B (Economy)</option>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Group className="mb-3 mt-4">
-                                            <Form.Check type="checkbox" name="is_organic" label="Organic Certified" checked={formData.is_organic} onChange={handleChange} />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-
-                                <hr />
-                                <h6>Selling Mode</h6>
-                                <Form.Group className="mb-3">
-                                    <Form.Check inline type="radio" name="selling_mode" value="fixed_price" label="Fixed Price" checked={formData.selling_mode === 'fixed_price'} onChange={handleChange} />
-                                    <Form.Check inline type="radio" name="selling_mode" value="bidding" label="Bidding / Auction" checked={formData.selling_mode === 'bidding'} onChange={handleChange} />
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Label>{formData.selling_mode === 'fixed_price' ? 'Fixed Price' : 'Base Price'} per kg (₹) *</Form.Label>
-                                    <Form.Control type="number" step="0.01" name={formData.selling_mode === 'fixed_price' ? 'fixed_price' : 'base_price'} value={formData.selling_mode === 'fixed_price' ? formData.fixed_price : formData.base_price} onChange={handleChange} min="0.01" required />
-                                    {hint && <small className={`text-${hint.type}`}>{hint.msg}</small>}
-                                </Form.Group>
-                            </Card.Body>
-                        </Card>
-
-                        <Card className="mb-4">
-                            <Card.Header>Product Images (1-3, Max 5MB each)</Card.Header>
-                            <Card.Body>
-                                <div className="mb-3">
-                                    {images.map((img, i) => (
-                                        <div key={i} className="image-preview">
-                                            <img src={URL.createObjectURL(img)} alt={`Preview ${i}`} />
-                                            <button type="button" className="remove-btn" onClick={() => removeImage(i)}><FaTimes /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                                {images.length < 3 && (
-                                    <Form.Group>
-                                        <Form.Label className="btn btn-outline-primary"><FaUpload className="me-2" />Upload Images<Form.Control type="file" accept="image/jpeg,image/png" multiple hidden onChange={handleImageChange} /></Form.Label>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Description *</Form.Label>
+                                        <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleChange} minLength={20} maxLength={1000} required />
                                     </Form.Group>
-                                )}
-                            </Card.Body>
-                        </Card>
 
-                        <Button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Product'}</Button>
-                    </Col>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Quantity (kg) *</Form.Label>
+                                                <Form.Control type="number" step="0.1" name="quantity_kg" value={formData.quantity_kg} onChange={handleChange} min="1" required />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Quality Grade *</Form.Label>
+                                                <Form.Select name="quality_grade" value={formData.quality_grade} onChange={handleChange}>
+                                                    <option value="A+">A+ (Premium)</option>
+                                                    <option value="A">A (Standard)</option>
+                                                    <option value="B">B (Economy)</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3 mt-4">
+                                                <Form.Check type="checkbox" name="is_organic" label="Organic Certified" checked={formData.is_organic} onChange={handleChange} />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-                    <Col md={4}>
-                        {priceGuidance && (
-                            <div className="price-guidance-box">
-                                <h6>💡 Price Guidance</h6>
-                                <table className="table table-sm mb-0">
-                                    <tbody>
-                                        {priceGuidance.msp_per_kg && <tr><td>MSP (Govt.)</td><td className="fw-bold">₹{priceGuidance.msp_per_kg.toFixed(2)}/kg</td></tr>}
-                                        {priceGuidance.apmc_avg_per_kg && <tr><td>APMC Avg</td><td className="fw-bold">₹{priceGuidance.apmc_avg_per_kg.toFixed(2)}/kg</td></tr>}
-                                        {priceGuidance.platform_avg_per_kg && <tr><td>Platform Avg</td><td className="fw-bold">₹{priceGuidance.platform_avg_per_kg.toFixed(2)}/kg</td></tr>}
-                                        {priceGuidance.suggested_min && priceGuidance.suggested_max && <tr><td>Suggested</td><td className="fw-bold text-success">₹{priceGuidance.suggested_min.toFixed(2)} - ₹{priceGuidance.suggested_max.toFixed(2)}</td></tr>}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </Col>
-                </Row>
-            </Form>
-        </Container>
+                                    <hr />
+                                    <h6>Selling Mode</h6>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check inline type="radio" name="selling_mode" value="fixed_price" label="Fixed Price" checked={formData.selling_mode === 'fixed_price'} onChange={handleChange} />
+                                        <Form.Check inline type="radio" name="selling_mode" value="bidding" label="Bidding / Auction" checked={formData.selling_mode === 'bidding'} onChange={handleChange} />
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>{formData.selling_mode === 'fixed_price' ? 'Fixed Price' : 'Base Price'} per kg (₹) *</Form.Label>
+                                        <Form.Control type="number" step="0.01" name={formData.selling_mode === 'fixed_price' ? 'fixed_price' : 'base_price'} value={formData.selling_mode === 'fixed_price' ? formData.fixed_price : formData.base_price} onChange={handleChange} min="0.01" required />
+                                        {hint && <small className={`text-${hint.type}`}>{hint.msg}</small>}
+                                    </Form.Group>
+                                </Card.Body>
+                            </Card>
+
+                            <Card className="mb-4">
+                                <Card.Header>Product Images (1-3, Max 5MB each)</Card.Header>
+                                <Card.Body>
+                                    <div className="mb-3">
+                                        {images.map((img, i) => (
+                                            <div key={i} className="image-preview">
+                                                <img src={URL.createObjectURL(img)} alt={`Preview ${i}`} />
+                                                <button type="button" className="remove-btn" onClick={() => removeImage(i)}><FaTimes /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {images.length < 3 && (
+                                        <Form.Group>
+                                            <Form.Label className="btn btn-outline-primary"><FaUpload className="me-2" />Upload Images<Form.Control type="file" accept="image/jpeg,image/png" multiple hidden onChange={handleImageChange} /></Form.Label>
+                                        </Form.Group>
+                                    )}
+                                </Card.Body>
+                            </Card>
+
+                            <Button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Product'}</Button>
+                        </Col>
+
+                        <Col md={4}>
+                            {priceGuidance && (
+                                <div className="price-guidance-box">
+                                    <h6>💡 Price Guidance</h6>
+                                    <table className="table table-sm mb-0">
+                                        <tbody>
+                                            {priceGuidance.msp_per_kg && <tr><td>MSP (Govt.)</td><td className="fw-bold">₹{priceGuidance.msp_per_kg.toFixed(2)}/kg</td></tr>}
+                                            {priceGuidance.apmc_avg_per_kg && <tr><td>APMC Avg</td><td className="fw-bold">₹{priceGuidance.apmc_avg_per_kg.toFixed(2)}/kg</td></tr>}
+                                            {priceGuidance.platform_avg_per_kg && <tr><td>Platform Avg</td><td className="fw-bold">₹{priceGuidance.platform_avg_per_kg.toFixed(2)}/kg</td></tr>}
+                                            {priceGuidance.suggested_min && priceGuidance.suggested_max && <tr><td>Suggested</td><td className="fw-bold text-success">₹{priceGuidance.suggested_min.toFixed(2)} - ₹{priceGuidance.suggested_max.toFixed(2)}</td></tr>}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </Col>
+                    </Row>
+                </Form>
+            </Container>
+        </DashboardLayout>
     );
 };
 

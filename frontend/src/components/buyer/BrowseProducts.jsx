@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Badge, Pagination, InputGroup, Button } from 'react-bootstrap';
 import { FaSearch, FaLeaf, FaStar } from 'react-icons/fa';
-import api from '../../services/api';
+import api, { UPLOAD_URL } from '../../services/api';
 import Loader from '../common/Loader';
-
-const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000/uploads';
 
 // ════════════════════════════════════════════════════════════════════════
 // Centralized Product Image Map — VERIFIED URLs for every product
@@ -133,7 +131,7 @@ const getProductImage = (product) => {
 
     // 2. If it's a local upload path, build the URL
     if (product.primary_image) {
-        return `${UPLOAD_URL}/${product.primary_image.replace(/^\/+/, '')}`;
+        return `${UPLOAD_URL}${product.primary_image}`;
     }
 
     // 3. Look up from our verified map

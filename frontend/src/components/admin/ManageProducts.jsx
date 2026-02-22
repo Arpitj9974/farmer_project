@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Badge, Button, Modal, Form } from 'react-bootstrap';
 import { FaCheck, FaTimes, FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
+import api, { UPLOAD_URL } from '../../services/api';
 import Loader from '../common/Loader';
-
-const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000/uploads';
 
 const ManageProducts = () => {
     const [products, setProducts] = useState([]);
@@ -62,7 +60,7 @@ const ManageProducts = () => {
                             <tbody>
                                 {products.map(product => (
                                     <tr key={product.id}>
-                                        <td><img src={product.primary_image ? `${UPLOAD_URL}${product.primary_image.replace('/uploads', '')}` : '/placeholder.jpg'} alt="" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} /></td>
+                                        <td><img src={product.primary_image ? `${UPLOAD_URL}${product.primary_image}` : '/placeholder.jpg'} alt="" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} /></td>
                                         <td>{product.name}<br /><small className="text-muted">{product.quantity_kg} kg</small></td>
                                         <td>{product.category_name}</td>
                                         <td>{product.farmer_name}<br /><small className="text-muted">{product.city}</small></td>
