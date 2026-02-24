@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Form, Badge, Pagination, InputGroup, Button 
 import { FaSearch, FaLeaf, FaStar } from 'react-icons/fa';
 import api, { UPLOAD_URL } from '../../services/api';
 import Loader from '../common/Loader';
+import { commodityGroups } from '../../utils/marketData';
 
 // ════════════════════════════════════════════════════════════════════════
 // Centralized Product Image Map — VERIFIED URLs for every product
@@ -158,8 +159,12 @@ const BrowseProducts = () => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({});
+
+    // Available commodities based on selected group
+    const [availableCommodities, setAvailableCommodities] = useState([]);
+
     const [filters, setFilters] = useState({
-        search: '', category_id: '', selling_mode: '', quality_grade: '', is_organic: '', sort: 'newest'
+        search: '', commodityGroup: '', commodity: '', selling_mode: '', quality_grade: '', is_organic: '', sort: 'newest'
     });
 
     useEffect(() => {
@@ -177,11 +182,42 @@ const BrowseProducts = () => {
         } catch (err) { console.error(err); }
     };
 
+    const getSelectedCategoryIds = () => {
+        if (!filters.commodityGroup && !filters.commodity) return '';
+
+        let targetNames = [];
+        if (filters.commodity) {
+            targetNames = [filters.commodity];
+        } else if (filters.commodityGroup && commodityGroups[filters.commodityGroup]) {
+            targetNames = commodityGroups[filters.commodityGroup];
+        }
+
+        if (targetNames.length === 0) return '';
+
+        // Find matching category IDs from backend
+        const matchingIds = categories
+            .filter(cat => targetNames.some(name => name.toLowerCase() === cat.name.toLowerCase()))
+            .map(cat => cat.id);
+
+        return matchingIds.join(',');
+    };
+
     const fetchProducts = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({ page, limit: 12 });
-            Object.entries(filters).forEach(([key, val]) => { if (val) params.append(key, val); });
+            Object.entries(filters).forEach(([key, val]) => {
+                if (val && key !== 'commodityGroup' && key !== 'commodity') {
+                    params.append(key, val);
+                }
+            });
+
+            // Append calculated category IDs
+            const catIds = getSelectedCategoryIds();
+            if (catIds) {
+                params.append('category_id', catIds);
+            }
+
             const res = await api.get(`/products?${params}`);
             setProducts(res.data.data);
             setPagination(res.data.pagination);
@@ -193,8 +229,38 @@ const BrowseProducts = () => {
     };
 
     const handleFilterChange = (key, value) => {
-        setFilters({ ...filters, [key]: value });
+        let newFilters = { ...filters, [key]: value };
+
+        // Cascading logic
+        if (key === 'commodityGroup') {
+            newFilters.commodity = ''; // Reset commodity when group changes
+            if (value && commodityGroups[value]) {
+                setAvailableCommodities(commodityGroups[value]);
+            } else {
+                setAvailableCommodities([]);
+            }
+        }
+
+        setFilters(newFilters);
         setPage(1);
+    };
+
+    const getPageNumbers = () => {
+        const totalPages = pagination.totalPages || 1;
+        let startPage = Math.max(1, page - 2);
+        let endPage = Math.min(totalPages, page + 2);
+
+        if (endPage - startPage < 4) {
+            if (startPage === 1) {
+                endPage = Math.min(totalPages, startPage + 4);
+            } else if (endPage === totalPages) {
+                startPage = Math.max(1, endPage - 4);
+            }
+        }
+
+        const pages = [];
+        for (let i = startPage; i <= endPage; i++) pages.push(i);
+        return pages;
     };
 
     return (
@@ -215,10 +281,22 @@ const BrowseProducts = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Category</Form.Label>
-                            <Form.Select value={filters.category_id} onChange={e => handleFilterChange('category_id', e.target.value)}>
-                                <option value="">All Categories</option>
-                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                            <Form.Label>Commodity Group</Form.Label>
+                            <Form.Select value={filters.commodityGroup} onChange={e => handleFilterChange('commodityGroup', e.target.value)}>
+                                <option value="">All Groups</option>
+                                {Object.keys(commodityGroups).map(grp => <option key={grp} value={grp}>{grp}</option>)}
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Commodity</Form.Label>
+                            <Form.Select
+                                value={filters.commodity}
+                                onChange={e => handleFilterChange('commodity', e.target.value)}
+                                disabled={!filters.commodityGroup}
+                            >
+                                <option value="">{filters.commodityGroup ? 'All Commodities' : 'Select Group First'}</option>
+                                {availableCommodities.map(comm => <option key={comm} value={comm}>{comm}</option>)}
                             </Form.Select>
                         </Form.Group>
 
@@ -296,8 +374,8 @@ const BrowseProducts = () => {
                                 <div className="d-flex justify-content-center mt-4">
                                     <Pagination>
                                         <Pagination.Prev disabled={page === 1} onClick={() => setPage(page - 1)} />
-                                        {[...Array(Math.min(pagination.totalPages, 5))].map((_, i) => (
-                                            <Pagination.Item key={i + 1} active={page === i + 1} onClick={() => setPage(i + 1)}>{i + 1}</Pagination.Item>
+                                        {getPageNumbers().map((pageNum) => (
+                                            <Pagination.Item key={pageNum} active={page === pageNum} onClick={() => setPage(pageNum)}>{pageNum}</Pagination.Item>
                                         ))}
                                         <Pagination.Next disabled={page === pagination.totalPages} onClick={() => setPage(page + 1)} />
                                     </Pagination>

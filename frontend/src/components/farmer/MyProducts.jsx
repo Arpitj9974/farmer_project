@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Badge, Button, Form, Pagination } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, Form, Pagination, Modal } from 'react-bootstrap';
 import { FaEye, FaGavel, FaEdit, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import api, { UPLOAD_URL } from '../../services/api';
@@ -13,6 +13,10 @@ const MyProducts = () => {
     const [filter, setFilter] = useState({ status: '', selling_mode: '' });
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({});
+
+    // Delete Confirmation State
+    const [showDelete, setShowDelete] = useState(false);
+    const [productToDelete, setProductToDelete] = useState(null);
 
     useEffect(() => {
         console.log("MyProducts mounted");
@@ -35,14 +39,23 @@ const MyProducts = () => {
         }
     };
 
-    const handleDelete = async (productId) => {
-        if (!window.confirm('Are you sure you want to delete this product?')) return;
+    const handleDeleteClick = (productId) => {
+        setProductToDelete(productId);
+        setShowDelete(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!productToDelete) return;
         try {
-            await api.delete(`/products/${productId}`);
-            toast.success('Product deleted');
+            await api.delete(`/products/${productToDelete}`);
+            toast.success('Product deleted successfully');
+            setShowDelete(false);
+            setProductToDelete(null);
             fetchProducts();
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to delete');
+            toast.error(err.response?.data?.message || 'Failed to delete product');
+            setShowDelete(false);
+            setProductToDelete(null);
         }
     };
 
@@ -71,6 +84,24 @@ const MyProducts = () => {
             console.error("Error generating image URL for product:", product, e);
             return FALLBACK_IMAGE;
         }
+    };
+
+    const getPageNumbers = () => {
+        const totalPages = pagination.totalPages || 1;
+        let startPage = Math.max(1, page - 2);
+        let endPage = Math.min(totalPages, page + 2);
+
+        if (endPage - startPage < 4) {
+            if (startPage === 1) {
+                endPage = Math.min(totalPages, startPage + 4);
+            } else if (endPage === totalPages) {
+                startPage = Math.max(1, endPage - 4);
+            }
+        }
+
+        const pages = [];
+        for (let i = startPage; i <= endPage; i++) pages.push(i);
+        return pages;
     };
 
     return (
@@ -137,8 +168,8 @@ const MyProducts = () => {
                                                         <FaEdit />
                                                     </Link>
                                                 )}
-                                                {['pending_approval', 'rejected'].includes(product.status) && (
-                                                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(product.id)}><FaTrash /></Button>
+                                                {product.status !== 'sold' && (
+                                                    <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(product.id)} title="Delete Product"><FaTrash /></Button>
                                                 )}
                                             </div>
                                         </Card.Body>
@@ -154,13 +185,28 @@ const MyProducts = () => {
                     <div className="d-flex justify-content-center mt-4">
                         <Pagination>
                             <Pagination.Prev disabled={page === 1} onClick={() => setPage(page - 1)} />
-                            {[...Array(pagination.totalPages)].map((_, i) => (
-                                <Pagination.Item key={i + 1} active={page === i + 1} onClick={() => setPage(i + 1)}>{i + 1}</Pagination.Item>
+                            {getPageNumbers().map((pageNum) => (
+                                <Pagination.Item key={pageNum} active={page === pageNum} onClick={() => setPage(pageNum)}>{pageNum}</Pagination.Item>
                             ))}
                             <Pagination.Next disabled={page === pagination.totalPages} onClick={() => setPage(page + 1)} />
                         </Pagination>
                     </div>
                 )}
+
+                {/* Delete Confirmation Modal */}
+                <Modal show={showDelete} onHide={() => setShowDelete(false)} centered>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Confirm Delete</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+                        <p className="text-muted small mb-0">Note: Products with active orders or bids cannot be deleted.</p>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowDelete(false)}>Cancel</Button>
+                        <Button variant="danger" onClick={confirmDelete}>Yes, Delete</Button>
+                    </Modal.Footer>
+                </Modal>
             </Container>
         </DashboardLayout>
     );

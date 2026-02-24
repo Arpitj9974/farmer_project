@@ -110,7 +110,18 @@ const EditProduct = () => {
         setError('');
 
         try {
-            await api.put(`/products/${id}`, formData);
+            // Build a clean payload — only send the price field relevant to this product's mode
+            // Sending an empty string for the wrong field can confuse backend type coercion
+            const payload = { ...formData };
+            if (product.selling_mode === 'fixed_price') {
+                delete payload.base_price;   // not applicable — backend ignores it too, but be explicit
+            } else {
+                delete payload.fixed_price;  // not applicable for bidding products
+            }
+
+            console.log('[EditProduct] PUT payload:', payload, '| mode:', product.selling_mode);
+
+            await api.put(`/products/${id}`, payload);
             toast.success('Product updated successfully');
             navigate('/farmer/products');
         } catch (err) {
@@ -175,9 +186,9 @@ const EditProduct = () => {
                                         </Col>
                                         <Col md={6}>
                                             <Form.Group className="mb-3">
-                                                <Form.Label>Category</Form.Label>
+                                                <Form.Label>Commodity</Form.Label>
                                                 <Form.Control type="text" value={product.category_name} disabled readOnly />
-                                                <Form.Text className="text-muted">Category cannot be changed after creation.</Form.Text>
+                                                <Form.Text className="text-muted">Commodity cannot be changed after creation.</Form.Text>
                                             </Form.Group>
                                         </Col>
                                     </Row>

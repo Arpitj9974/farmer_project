@@ -6,63 +6,7 @@ import { toast } from 'react-toastify';
 import api from '../../services/api';
 import DashboardLayout from '../common/Layout/DashboardLayout';
 
-// Define the hierarchy
-const CROP_TYPES = {
-    'Grains & Cereals': [
-        // Staples
-        'Rice - Basmati', 'Rice - Sona Masuri', 'Rice - Ponni', 'Rice - Indrayani', 'Rice - Gobindobhog', 'Rice - Kalanamak', 'Rice - Ambemohar', 'Rice - Black (Karuppu Kavuni)',
-        'Wheat - Sharbati', 'Wheat - Khapli (Emmer)', 'Wheat - Durum', 'Wheat - Malvi',
-        'Maize - Yellow', 'Maize - White', 'Sweet Corn', 'Popcorn',
-        // Millets
-        'Jowar (Sorghum)', 'Bajra (Pearl Millet)', 'Ragi (Finger Millet)', 'Kangni (Foxtail Millet)',
-        'Kodo Millet', 'Kutki (Little Millet)', 'Sanwa (Barnyard Millet)', 'Cheena (Proso Millet)', 'Hari Kangni (Browntop Millet)',
-        // Pseudo-Cereals
-        'Kuttu (Buckwheat)', 'Rajgira (Amaranth)', 'Singhara (Water Chestnut Flour)'
-    ],
-    'Pulses & Legumes': [
-        'Tur / Arhar Dal (Pigeon Pea)',
-        'Chana - Desi (Brown)', 'Chana - Kabuli (White)', 'Chana Dal',
-        'Moong (Whole Green)', 'Moong Dal (Yellow Split)',
-        'Urad (Whole Black)', 'Urad Dal (White Split)',
-        'Masoor (Red/Orange)', 'Masoor (Whole Brown)',
-        'Rajma - Chitra', 'Rajma - Jammu', 'Rajma - Red',
-        'Lobia (Cowpeas)', 'Matki (Moth Beans)', 'Kulthi (Horse Gram)',
-        'Val (Field Beans)', 'Soybeans', 'Dried Peas (Vatana)'
-    ],
-    'Vegetables': [
-        // Essentials
-        'Tomato', 'Onion', 'Potato',
-        // Gourds
-        'Bottle Gourd (Lauki)', 'Bitter Gourd (Karela)', 'Ridge Gourd (Turai)', 'Snake Gourd',
-        'Ivy Gourd (Tindora)', 'Pointed Gourd (Parwal)', 'Spiny Gourd (Kantola)', 'Ash Gourd (Petha)',
-        // Leafy Greens
-        'Spinach (Palak)', 'Fenugreek (Methi)', 'Amaranth (Chaulai)', 'Mustard Greens (Sarson)',
-        'Bathua', 'Gongura', 'Colocasia Leaves (Arbi patta)',
-        // Cruciferous
-        'Cauliflower', 'Cabbage', 'Knol Khol', 'Broccoli',
-        // Roots
-        'Radish', 'Carrot', 'Beetroot', 'Sweet Potato', 'Elephant Foot Yam', 'Taro Root (Arbi)', 'Tapioca',
-        // Others
-        'Ladyfinger (Bhindi)', 'Brinjal (Baingan)', 'Drumstick (Moringa)', 'Green Peas (Matar)', 'Cluster Beans', 'French Beans', 'Sem Phali', 'Capsicum'
-    ],
-    'Fruits': [
-        // Mangoes
-        'Mango - Alphonso', 'Mango - Kesar', 'Mango - Banganapalli', 'Mango - Dasheri', 'Mango - Langra', 'Mango - Chausa', 'Mango - Totapuri',
-        // Tropical
-        'Banana - Robusta', 'Banana - Poovan', 'Banana - Yelakki', 'Banana - Nendran',
-        'Nagpur Orange', 'Mosambi (Sweet Lime)', 'Kinnow', 'Pomelo', 'Lemon',
-        'Papaya', 'Guava', 'Pineapple', 'Jackfruit', 'Pomegranate', 'Chickoo (Sapodilla)', 'Litchi', 'Custard Apple',
-        // Temperate
-        'Apple - Royal Delicious', 'Apple - Golden', 'Apple - Fuji',
-        'Peach', 'Plum', 'Apricot', 'Cherry', 'Pear', 'Walnut', 'Almond',
-        // Berries/Melons
-        'Watermelon', 'Muskmelon', 'Strawberry', 'Mulberry',
-        // Indigenous
-        'Amla', 'Jamun', 'Bael', 'Ber', 'Phalsa',
-        // Exotic
-        'Dragon Fruit', 'Kiwi', 'Avocado', 'Mangosteen'
-    ]
-};
+import { commodityGroups } from '../../utils/marketData';
 
 const AddProduct = () => {
     const navigate = useNavigate();
@@ -74,6 +18,7 @@ const AddProduct = () => {
 
     // New state for key category type
     const [selectedType, setSelectedType] = useState('');
+    const [selectedCrop, setSelectedCrop] = useState('');
     const [availableCrops, setAvailableCrops] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -88,8 +33,8 @@ const AddProduct = () => {
 
     // Update available crops when type changes
     useEffect(() => {
-        if (selectedType && CROP_TYPES[selectedType]) {
-            setAvailableCrops(CROP_TYPES[selectedType]);
+        if (selectedType && commodityGroups[selectedType]) {
+            setAvailableCrops(commodityGroups[selectedType]);
         } else {
             setAvailableCrops([]);
         }
@@ -104,27 +49,39 @@ const AddProduct = () => {
 
     const handleTypeChange = (e) => {
         setSelectedType(e.target.value);
-        setFormData({ ...formData, name: '', category_id: '' }); // Reset dependent fields
+        setSelectedCrop('');
+        setFormData({ ...formData, name: formData.name || '', category_id: '' }); // Reset dependent fields
         setPriceGuidance(null);
     };
 
     const handleCropChange = (e) => {
         const cropName = e.target.value;
+        setSelectedCrop(cropName);
 
         // Try to find a matching category ID from the backend list
         // This assumes backend categories are named 'Mango', 'Banana' etc.
         const matchingCategory = categories.find(c => c.name.toLowerCase() === cropName.toLowerCase());
 
-        // fallback logic for demo purposes if category doesn't exist in DB
-        // In a real app, strict validation would prevent this, but we map to first available for demo continuity
-        const fallbackId = categories.length > 0 ? categories[0].id : '';
-        const categoryId = matchingCategory ? matchingCategory.id : fallbackId;
+        // fallback logic if the specific crop category doesn't exist in DB
+        let categoryId = matchingCategory ? matchingCategory.id : null;
+        if (!categoryId) {
+            // Try to map to a generic group category available in the DB
+            const groupMapping = {
+                'Grains & Cereals': 'Grains',
+                'Pulses & Legumes': 'Yellow Peas', // Generic pulse fallback
+                'Vegetables': 'Vegetables',
+                'Fruits': 'Fruits'
+            };
+            const fallbackCategoryName = groupMapping[selectedType];
+            const fallbackCategory = categories.find(c => c.name.toLowerCase() === fallbackCategoryName?.toLowerCase());
+            categoryId = fallbackCategory ? fallbackCategory.id : (categories.length > 0 ? categories[0].id : '');
+        }
 
-        setFormData({
-            ...formData,
-            name: cropName, // Set Product Name to the Crop Name
+        setFormData(prev => ({
+            ...prev,
+            name: prev.name || cropName, // Set Product Title to the Crop Name if it was empty
             category_id: categoryId
-        });
+        }));
 
         if (categoryId) {
             // Fetch price guidance if we have a valid category ID, passing crop name explicitly for better accuracy
@@ -214,17 +171,23 @@ const AddProduct = () => {
                             <Card className="mb-4">
                                 <Card.Header>Product Details</Card.Header>
                                 <Card.Body>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Product Title *</Form.Label>
+                                        <Form.Control type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="E.g., Fresh Organic Alphonso Mangoes" />
+                                        <Form.Text className="text-muted">Give your product a descriptive name to attract buyers.</Form.Text>
+                                    </Form.Group>
+
                                     <Row>
                                         <Col md={6}>
                                             <Form.Group className="mb-3">
-                                                <Form.Label>Select Category *</Form.Label>
+                                                <Form.Label>Commodity Group *</Form.Label>
                                                 <Form.Select
                                                     value={selectedType}
                                                     onChange={handleTypeChange}
                                                     required
                                                 >
-                                                    <option value="">-- Select Category --</option>
-                                                    {Object.keys(CROP_TYPES).map(type => (
+                                                    <option value="">-- Select Group --</option>
+                                                    {Object.keys(commodityGroups).map(type => (
                                                         <option key={type} value={type}>{type}</option>
                                                     ))}
                                                 </Form.Select>
@@ -232,16 +195,15 @@ const AddProduct = () => {
                                         </Col>
                                         <Col md={6}>
                                             <Form.Group className="mb-3">
-                                                <Form.Label>Crop / Product Name *</Form.Label>
+                                                <Form.Label>Commodity *</Form.Label>
                                                 <Form.Select
-                                                    name="name"
-                                                    value={formData.name}
+                                                    value={selectedCrop}
                                                     onChange={handleCropChange}
                                                     required
                                                     disabled={!selectedType}
                                                 >
                                                     <option value="">
-                                                        {selectedType ? '-- Select Crop --' : 'Select Category first'}
+                                                        {selectedType ? '-- Select Commodity --' : 'Select Group first'}
                                                     </option>
                                                     {availableCrops.map(crop => (
                                                         <option key={crop} value={crop}>{crop}</option>

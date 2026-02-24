@@ -92,7 +92,14 @@ exports.getProducts = async (req, res) => {
         const params = [];
         let paramIndex = 1;
 
-        if (category_id) { query += ` AND p.category_id = $${paramIndex++}`; params.push(category_id); }
+        if (category_id) {
+            // Handle multiple comma-separated IDs for Commodity Group filtering
+            const categoryIds = category_id.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+            if (categoryIds.length > 0) {
+                query += ` AND p.category_id = ANY($${paramIndex++}::int[])`;
+                params.push(categoryIds);
+            }
+        }
         if (selling_mode) { query += ` AND p.selling_mode = $${paramIndex++}`; params.push(selling_mode); }
         if (quality_grade) { query += ` AND p.quality_grade = $${paramIndex++}`; params.push(quality_grade); }
         if (is_organic === 'true') { query += ` AND p.is_organic = true`; }
@@ -183,7 +190,15 @@ exports.getMyProducts = async (req, res) => {
         let paramIndex = 2;
 
         if (status) { query += ` AND p.status = $${paramIndex++}`; params.push(status); }
-        if (category_id) { query += ` AND p.category_id = $${paramIndex++}`; params.push(category_id); }
+
+        if (category_id) {
+            // Handle multiple comma-separated IDs for Commodity Group filtering
+            const categoryIds = category_id.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+            if (categoryIds.length > 0) {
+                query += ` AND p.category_id = ANY($${paramIndex++}::int[])`;
+                params.push(categoryIds);
+            }
+        }
 
         const countResult = await pool.query(`SELECT COUNT(*) FROM (${query}) as c`, params);
         const total = parseInt(countResult.rows[0].count);
@@ -227,7 +242,39 @@ exports.updateProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cannot edit sold products' });
         }
 
-        const { name, description, quantity_kg, fixed_price, base_price, quality_grade, is_organic, status } = req.body;
+        const { name, description, quantity_kg, quality_grade, status } = req.body;
+        let { fixed_price, base_price, is_organic } = req.body;
+
+        // ── DIAGNOSTIC LOG — remove after confirming fix ──
+        console.log('[updateProduct] received body:', {
+            id,
+            selling_mode: currentProduct.selling_mode,
+            fixed_price: req.body.fixed_price,
+            base_price: req.body.base_price,
+            is_organic: req.body.is_organic,
+            typeof_fixed: typeof req.body.fixed_price,
+            typeof_base: typeof req.body.base_price,
+        });
+
+        // Enforce mode-specific price: ignore the irrelevant price field entirely
+        // A fixed_price product should never validate or update base_price, and vice versa.
+        if (currentProduct.selling_mode === 'fixed_price') {
+            base_price = null; // Force null — don't validate or update base_price
+        } else {
+            fixed_price = null; // Force null — don't validate or update fixed_price
+        }
+
+        // Convert empty strings or undefined to null to avoid type coercion issues
+        // (empty string '' <= 0 is TRUE in JS — would fail validation)
+        if (fixed_price === '' || fixed_price === undefined) fixed_price = null;
+        if (base_price === '' || base_price === undefined) base_price = null;
+        if (fixed_price !== null) fixed_price = parseFloat(fixed_price);
+        if (base_price !== null) base_price = parseFloat(base_price);
+
+        // Coerce is_organic to proper boolean (checkbox sends true/false as string from some clients)
+        const isOrganic = is_organic === true || is_organic === 'true' ? true
+            : is_organic === false || is_organic === 'false' ? false
+                : undefined; // undefined — let COALESCE keep the existing value
 
         // Validate status transitions
         const allowedStatuses = ['active', 'paused', 'pending_approval'];
@@ -235,14 +282,14 @@ exports.updateProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: `Invalid status. Allowed: ${allowedStatuses.join(', ')}` });
         }
 
-        // Price validation
-        if (fixed_price !== undefined && fixed_price <= 0) {
-            return res.status(400).json({ success: false, message: 'Price must be greater than 0' });
+        // Price validation — only for the relevant mode
+        if (currentProduct.selling_mode === 'fixed_price' && fixed_price !== null && fixed_price <= 0) {
+            return res.status(400).json({ success: false, message: 'Fixed price must be greater than 0' });
         }
-        if (base_price !== undefined && base_price <= 0) {
+        if (currentProduct.selling_mode === 'bidding' && base_price !== null && base_price <= 0) {
             return res.status(400).json({ success: false, message: 'Base price must be greater than 0' });
         }
-        if (quantity_kg !== undefined && quantity_kg <= 0) {
+        if (quantity_kg !== undefined && parseFloat(quantity_kg) <= 0) {
             return res.status(400).json({ success: false, message: 'Quantity must be greater than 0' });
         }
 
@@ -257,7 +304,7 @@ exports.updateProduct = async (req, res) => {
              is_organic = COALESCE($7, is_organic),
              status = COALESCE($8, status)
              WHERE id = $9`,
-            [name, description, quantity_kg, fixed_price, base_price, quality_grade, is_organic, status, id]
+            [name, description, quantity_kg, fixed_price, base_price, quality_grade, isOrganic, status, id]
         );
 
         // Fetch updated product to return
