@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Log API URL at startup (helps debug environment mismatches)
 if (process.env.NODE_ENV === 'development') {

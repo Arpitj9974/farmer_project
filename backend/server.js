@@ -36,30 +36,19 @@ app.use(helmet({
 
 // ─── CORS — Environment-Aware ───
 // In PRODUCTION: Only FRONTEND_URL is allowed (your Vercel domain)
-// In DEVELOPMENT: Localhost variants are also allowed for convenience
-const allowedOrigins = ENV === 'production'
-    ? [process.env.FRONTEND_URL].filter(Boolean)
-    : [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3005',
-        'http://localhost:3006',
-        'http://localhost:3007',
-        process.env.FRONTEND_URL,
-    ].filter(Boolean);
-
+// In DEVELOPMENT: Allow ALL origins for hassle-free local development
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (server-to-server, curl, health checks)
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            logger.warn(`🚫 CORS blocked request from unauthorized origin`, { origin, allowedOrigins });
-            callback(new Error('Not allowed by CORS'));
+    origin: ENV === 'production'
+        ? function (origin, callback) {
+            const allowed = [process.env.FRONTEND_URL].filter(Boolean);
+            if (!origin || allowed.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                logger.warn(`🚫 CORS blocked request from unauthorized origin`, { origin, allowed });
+                callback(new Error('Not allowed by CORS'));
+            }
         }
-    },
+        : true, // Allow ALL origins in development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
